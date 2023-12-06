@@ -180,16 +180,15 @@ def word2letters(word):
         if hierarchy[0][idx][3] == 0:
             cv2.rectangle(output, (x, y), (x + w, y + h), (255, 0 , 0), 1)
             letter_crop = gray[y:y+h, x:x+w]
-            _, letter_crop = cv2.threshold(letter_crop, 200, 255, cv2.THRESH_BINARY)
-            letter_crop = cv2.bitwise_not(letter_crop)
+            _, letter_crop = cv2.threshold(letter_crop, 250, 255, cv2.THRESH_BINARY)
 
             resized = cv2.resize(letter_crop, (28, 28), interpolation=cv2.INTER_AREA)
             letters.append((x, y, w, h, resized))
             
     letters.sort(key=lambda x: x[0])
-    plt.imshow(output)
-    ax = plt.gca()
-    ax.get_xaxis ().set_visible ( False )
-    ax.get_yaxis ().set_visible ( False )
-    plt.show()
+#     plt.imshow(output)
+#     ax = plt.gca()
+#     ax.get_xaxis ().set_visible ( False )
+#     ax.get_yaxis ().set_visible ( False )
+#     plt.show()
     return letters
