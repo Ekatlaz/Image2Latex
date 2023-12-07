@@ -11,7 +11,7 @@ def main():
     # load weights into new model
     loaded_model.load_weights("../model_words_v05.12.23.h5")
 
-    img = cv2.imread('Screenshot 2023-12-06 at 16.23.25.png', cv2.IMREAD_GRAYSCALE)
+    img = cv2.imread('2.png', cv2.IMREAD_GRAYSCALE)
     img = img / 255
     img = cv2.resize(img, (28, 28), interpolation=cv2.INTER_AREA)
     plt.imshow(img)
