@@ -1,0 +1,9 @@
+fastapi
+uvicorn[standard]
+pydantic
+websocket
+python-multipart
+opencv-python
+numpy
+pdf2image
+pytest-shutil

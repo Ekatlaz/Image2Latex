@@ -1,0 +1,21 @@
+# docker-compose.yml
+version: '3'
+
+services:
+  app:
+    image: python:3.8-slim
+    command: bash -c "apt-get update && apt-get install poppler-utils -y && apt-get install texlive -y && apt-get install ffmpeg libsm6 libxext6  -y && pip install --upgrade pip && pip install -r app/server/requirements.txt && uvicorn app.server.server:app --reload --host 0.0.0.0 --port 8000"
+    volumes:
+      - ./server:/app/server
+    ports:
+      - "8000:8000"
+
+  front:
+    image: node:alpine
+    volumes:
+      - ./my-react-app:/app
+    command: /bin/sh -c "cd app && npm install --frozen-lock && npm start"
+    ports:
+      - "3000:3000"
+  
+    

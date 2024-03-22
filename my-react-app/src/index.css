@@ -1,0 +1,146 @@
+:root {
+  font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
+  line-height: 1.5;
+  font-weight: 400;
+
+  color-scheme: light dark;
+  color: rgba(255, 255, 255, 0.87);
+  background-color: #242424;
+
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+.App {
+  text-align: center;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .App-logo {
+    animation: App-logo-spin infinite 20s linear;
+  }
+}
+
+.App-header {
+  /* background-color: #282c34; */
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: calc(10px + 2vmin);
+  color: white;
+}
+
+.App-link {
+  color: #61dafb;
+}
+.DownloadBtn {
+
+  height: 40px;
+  width: 450px;
+  color: white;
+  /* background-color: rgb(17, 17, 153); */
+  border: solid 1px white;
+  border-radius: 5px;
+}
+.LoadBtn {
+  margin-top: 20px;
+  height: 40px;
+  width: 150px;
+  color: white;
+  /* background-color: rgb(17, 17, 153); */
+  border: solid 1px white;
+  border-radius: 5px;
+}
+.FilesPreview {
+  float: left;
+  background-color: rgb(255, 255, 255);
+  border: solid 3px #282c34;
+  border-radius: 10px;
+  width: 50%;
+  height: 100%;
+  padding: 5px;
+  color: black;
+  white-space: normal;
+}
+
+.documentView {
+  height: 100%;
+  width: 100%;
+  overflow: scroll;
+}
+
+.texView {
+  height: 100%;
+  width: 100%;
+}
+
+.ApiAnswer {
+  background-color: rgb(255, 255, 255);
+  border: solid 3px #282c34;
+  border-radius: 10px;
+  width: 100%;
+  height: 100%;
+  color: #282c34;
+  text-align: left;
+  padding: 10px;
+}
+.MainTextBlock {
+  display: flex;
+  flex-direction: row;
+  align-items: flex-start;
+
+}
+.MainAppBlock{
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 1200px;
+}
+
+.TextBlock {
+  display: flex;
+  min-width: 700px;
+  max-height: 700px;
+  flex-direction: row;
+  justify-content: space-around;
+}
+
+.SpecialButtons {
+  display: flex;
+  min-width: 700px;
+  flex-direction: row;
+  justify-content: space-around;
+  margin-top: 50px;
+}
+
+#documentViewId {
+  width: 100%;
+  height: 100%;
+}
+
+#TexFrame {
+  resize: none;
+  overflow: scroll;
+  height: 100%;
+  width: 100%;
+  padding: 1px;
+  margin: 0;
+  text-align: left;
+}
+
+#statusError {
+  color: red;
+  font-size: 12px;
+}
+
+@keyframes App-logo-spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
