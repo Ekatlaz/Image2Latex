@@ -104,24 +104,28 @@ def create_tex(img_path):
         cropped_image = img[y_min:y_max, x_min:x_max]
         cropped_image = Image.fromarray(cropped_image)
 
-        # проверка на перенос строки
-        if i != 0:
-            box_prev = boxes[indexes[i - 1]]
-            x_min_prev, y_min_prev, x_max_prev, y_max_prev = map(int, box_prev[:4])
-            # print('y_prev: ', (y_min_prev + y_max_prev) / 2)
-            if abs((y_min + y_max) / 2 - (y_min_prev + y_max_prev) / 2) >= 10:
-                latex_output += '\n\n'
-
         if int(classes[indexes[i]]) == 0:
             latex_output += '$' + model_latex(cropped_image) + '$'
         elif int(classes[indexes[i]]) == 1:
-            latex_output += pytesseract.image_to_string(cropped_image, config=config, lang='rus+eng')
+            text = pytesseract.image_to_string(cropped_image, config=config, lang='rus+eng')
+            # исправление странного глюка pytesseract'a. Удаление _ вначале
+            if text[0] == '_':
+                text = text[1:]
+            # пустые символы мешают понять новый абзац или нет
+            while text[0] == ' ':
+                text = text[1:]
+            # считаем, что в большинстве случаев если текст начинается с большой буквы, то это новый абзац
+            # потому что если текст идёт после формулы, он начнётся с , или .
+            if text[0].isupper():
+                latex_output += '\n\n'
+            #latex_output += pytesseract.image_to_string(cropped_image, config=config, lang='rus+eng')
+            latex_output += text
         else:
             img_bytes = io.BytesIO()
             cropped_image.save(img_bytes, format='PNG')
             img_bytes = img_bytes.getvalue()  # байтовое представление png
             i_safe = quote(str(i))
-            latex_output += f"\\begin{{wrapfigure}}\n" \
+            latex_output += f"\n\n\\begin{{wrapfigure}}\n" \
                             f"\\includegraphics[width=0.5\\textwidth]{{{i_safe}.png}}\n" \
                             f"\\end{{wrapfigure}}\n\n"
 
