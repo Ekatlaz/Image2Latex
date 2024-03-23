@@ -104,6 +104,16 @@ def create_tex(img_path):
         cropped_image = img[y_min:y_max, x_min:x_max]
         cropped_image = Image.fromarray(cropped_image)
 
+        new_string = False
+
+        # проверка на перенос строки
+        if i != 0:
+            box_prev = boxes[indexes[i - 1]]
+            x_min_prev, y_min_prev, x_max_prev, y_max_prev = map(int, box_prev[:4])
+            #print('y_prev: ', (y_min_prev + y_max_prev) / 2)
+            if abs((y_min + y_max) / 2 - (y_min_prev + y_max_prev) / 2) >= 10:
+                new_string = True
+
         if int(classes[indexes[i]]) == 0:
             latex_output += '$' + model_latex(cropped_image) + '$'
         elif int(classes[indexes[i]]) == 1:
@@ -116,7 +126,15 @@ def create_tex(img_path):
                 text = text[1:]
             # считаем, что в большинстве случаев если текст начинается с большой буквы, то это новый абзац
             # потому что если текст идёт после формулы, он начнётся с , или .
-            if text[0].isupper():
+            if text[0].isupper() and new_string:
+                latex_output += '\n\n'
+            if new_string and (text[0].isdigit() and text[1] == ')'
+                               or text[0].isdigit() and text[1].isdigit() and text[2] == ')'
+                               or text[0].isdigit() and text[1].isdigit() and text[2].isdigit() and text[3] == ')'):
+                latex_output += '\n\n'
+            if new_string and (text[0].islower() and text[1] == ')'
+                               or text[0].islower() and text[1].islower() and text[2] == ')'
+                               or text[0].islower() and text[1].islower() and text[2].islower() and text[3] == ')'):
                 latex_output += '\n\n'
             #latex_output += pytesseract.image_to_string(cropped_image, config=config, lang='rus+eng')
             latex_output += text
