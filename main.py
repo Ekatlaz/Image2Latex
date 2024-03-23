@@ -90,14 +90,22 @@ def create_tex(img_path):
     # ..// 10 - учёт погрешности, чтобы небольшая разница в y не позволяла считать блоки разными строками
     indexes.sort(key=lambda j: ((boxes[j][1] + boxes[j][3]) / 2 // 10, (boxes[j][0] + boxes[j][2]) / 2))
 
-    latex_output = "\\documentclass{article}\n" \
+    latex_output = "\\documentclass[12pt]{article}\n" \
                    "\\usepackage[utf8]{inputenc}\n" \
                    "\\usepackage[russian]{babel}\n" \
+                   "\\usepackage[11]{calculus}\n" \
                    "\\usepackage{amsmath}\n" \
+                   "\\usepackage{dsfont}\n" \
                    "\\usepackage{graphicx}\n\n" \
                    "\\begin{document}\n"
 
+    caption = False
+
     for i in range(len(indexes)):
+        # если мы уже брали сегмент как подпись, то скип
+        if caption:
+            caption = False
+            continue
         box = boxes[indexes[i]]
         x_min, y_min, x_max, y_max = map(int, box[:4])
         # print('x: ', (x_min + x_max) / 2, 'y: ', (y_min + y_max) / 2)
@@ -143,9 +151,26 @@ def create_tex(img_path):
             cropped_image.save(img_bytes, format='PNG')
             img_bytes = img_bytes.getvalue()  # байтовое представление png
             i_safe = quote(str(i))
-            latex_output += f"\n\n\\begin{{wrapfigure}}\n" \
-                            f"\\includegraphics[width=0.5\\textwidth]{{{i_safe}.png}}\n" \
-                            f"\\end{{wrapfigure}}\n\n"
+
+            # если одиночная картинка с подписью
+            if i + 1 != len(indexes) - 1 and i + 2 != len(indexes) - 1 and int(classes[indexes[i + 1]]) == 1:
+                box_next = boxes[indexes[i + 1]]
+                x_min_next, y_min_next, x_max_next, y_max_next = map(int, box_next[:4])
+                cropped_image = img[y_min_next:y_max_next, x_min_next:x_max_next]
+                cropped_image = Image.fromarray(cropped_image)
+                latex_output += f"\n\n\\begin{{wrapfigure}}\n" \
+                                f"\\begin{{center}}\n" \
+                                f"\\includegraphics[width=0.5\\textwidth]{{{i_safe}.png}}\n" \
+                                f"\\end{{center}}\n" \
+                                f"\\begin{{center}}\n" \
+                                f"\\caption{{{pytesseract.image_to_string(cropped_image, config=config, lang='rus+eng')}}}\n" \
+                                f"\\end{{center}}\n" \
+                                f"\\end{{wrapfigure}}\n\n"
+                caption = True
+            else:
+                latex_output += f"\n\n\\begin{{wrapfigure}}\n" \
+                                f"\\includegraphics[width=0.5\\textwidth]{{{i_safe}.png}}\n" \
+                                f"\\end{{wrapfigure}}\n\n"
 
             with open(f"{i_safe}.png", "wb") as f:
                 f.write(img_bytes)
