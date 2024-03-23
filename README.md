@@ -13,13 +13,9 @@
 https://drive.google.com/drive/folders/1SRGZdzGqXhf1FumgEneTKJ5_sjuIzepK?usp=sharing
 
                  Class     Images  Instances      Box(P          R      mAP50  mAP50-95): 100%|██████████| 2/2 [01:12<00:00, 36.47s/it]
-                 
                    all         25       1530       0.82      0.864      0.864      0.584
-                   
                formula         25        614      0.776      0.786      0.807        0.5
-               
                   text         25        896      0.825      0.805       0.84      0.567
-                  
                picture         25         20      0.858          1      0.944      0.684
 
 ## Модель от 15.03.2024
