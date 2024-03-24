@@ -9,6 +9,9 @@ import pytesseract
 from PIL import Image
 from pix2tex.cli import LatexOCR
 from urllib.parse import quote
+import fitz
+
+# import magic
 pytesseract.pytesseract.tesseract_cmd = 'C:\\Program Files\\Tesseract-OCR\\tesseract.exe'
 config = r'--oem 3 --psm 6'
 
@@ -26,49 +29,64 @@ def create_yaml():
         yaml.dump(data_config, outfile, default_flow_style=False)
 
 
-def test_visualization(image_path):
-    img1 = cv2.imread(image_path)
-    results = best_model(img1, imgsz=640, iou=0.4, conf=0.4, verbose=True)
-    img = cv2.cvtColor(img1, cv2.COLOR_RGB2BGR)
+def convert_pdf_to_png(pdf_path):
+    pdf_document = fitz.open(pdf_path)
+    # os.makedirs(output_folder, exist_ok=True)
+    page_count = pdf_document.page_count
 
-    # получение классов и имен классов
-    classes = results[0].boxes.cls.cpu().numpy()
-    class_names = results[0].names
+    for page_number in range(page_count):
+        page = pdf_document.load_page(page_number)
+        image = page.get_pixmap()
+        image_path = os.path.join(f"page_{page_number + 1}.png")
+        image.save(image_path, "PNG")
+    pdf_document.close()
+    return page_count
 
-    # получение координат ограничивающих рамок объектов
-    boxes = results[0].boxes.xyxy.cpu().numpy()
 
-    # определение цветов для каждого класса
-    ########## это место надо переделать
-    class_colors = {}
-    for i, class_index in enumerate(set(classes)):  # используем уникальные индексы классов
-        class_name = class_names[class_index]
-        color = tuple(np.random.randint(0, 256, 3).tolist())
-        class_colors[class_index] = color
+'''def convert_image_to_png(image_path, output_folder):
+    with Image.open(image_path) as img:
+        # os.makedirs(output_folder, exist_ok=True)
+        png_path = os.path.join(output_folder, os.path.splitext(os.path.basename(image_path))[0] + ".png")
+        img.save(png_path, "PNG")'''
 
-    # создание изображения для отображения масок
-    labeled_image = img.copy()
 
-    # добавление подписей к рамкам
-    for i, box in enumerate(boxes):
-        x_min, y_min, x_max, y_max = map(int, box[:4])
-        class_index = int(classes[i])
-        if class_index in class_colors:  # проверка, что класс имеет соответствующий цвет
-            color = class_colors[class_index]
-        else:
-            color = (0, 255, 0)  # используем зеленый цвет по умолчанию
+def start(file_path):
+    if file_path.lower().endswith('.pdf'):
+        page_count = convert_pdf_to_png(file_path)
+        # print(page_count)
 
-        # прямоугольники и подписи
-        cv2.rectangle(labeled_image, (x_min, y_min), (x_max, y_max), color, 2)
-        cv2.putText(labeled_image, class_names[class_index], (x_min, y_min - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, color, 2)
+        with open("output.tex", "w", encoding="utf-8") as f:
 
-    # отображение результатов
-    plt.figure(figsize=(8, 8), dpi=150)
-    labeled_image = cv2.cvtColor(labeled_image, cv2.COLOR_BGR2RGB)
-    plt.imshow(labeled_image)
-    plt.axis('off')
-    #plt.savefig('labeled_image_3(vers15.03.24).png', bbox_inches='tight', pad_inches=0)
-    plt.show()
+            f.write("\\documentclass[12pt]{article}\n"
+                    "\\usepackage[utf8]{inputenc}\n"
+                    "\\usepackage[russian]{babel}\n"
+                    "\\usepackage[11]{calculus}\n"
+                    "\\usepackage{amsmath}\n"
+                    "\\usepackage{dsfont}\n"
+                    "\\usepackage{graphicx}\n\n"
+                    "\\begin{document}\n")
+
+        for i in range(page_count):
+            create_tex(file_path)
+
+        with open("output.tex", "a", encoding="utf-8") as f:
+            f.write("\\end{document}")
+
+
+    elif file_path.lower().endswith('.png') or file_path.lower().endswith('.jpg') or file_path.lower().endswith('.jpeg'):
+        with open("output.tex", "w", encoding="utf-8") as f:
+
+            f.write("\\documentclass[12pt]{article}\n"
+                    "\\usepackage[utf8]{inputenc}\n"
+                    "\\usepackage[russian]{babel}\n"
+                    "\\usepackage[11]{calculus}\n"
+                    "\\usepackage{amsmath}\n"
+                    "\\usepackage{dsfont}\n"
+                    "\\usepackage{graphicx}\n\n"
+                    "\\begin{document}\n")
+        create_tex(file_path)
+        with open("output.tex", "a", encoding="utf-8") as f:
+            f.write("\\end{document}")
 
 
 def create_tex(img_path):
@@ -90,95 +108,124 @@ def create_tex(img_path):
     # ..// 10 - учёт погрешности, чтобы небольшая разница в y не позволяла считать блоки разными строками
     indexes.sort(key=lambda j: ((boxes[j][1] + boxes[j][3]) / 2 // 10, (boxes[j][0] + boxes[j][2]) / 2))
 
-    latex_output = "\\documentclass[12pt]{article}\n" \
-                   "\\usepackage[utf8]{inputenc}\n" \
-                   "\\usepackage[russian]{babel}\n" \
-                   "\\usepackage[11]{calculus}\n" \
-                   "\\usepackage{amsmath}\n" \
-                   "\\usepackage{dsfont}\n" \
-                   "\\usepackage{graphicx}\n\n" \
-                   "\\begin{document}\n"
+    len_indexes = len(indexes)
 
     caption = False
+    prev_text = ''  # для добавления пропащих точек и пробелов
 
-    for i in range(len(indexes)):
-        # если мы уже брали сегмент как подпись, то скип
-        if caption:
-            caption = False
-            continue
-        box = boxes[indexes[i]]
-        x_min, y_min, x_max, y_max = map(int, box[:4])
-        # print('x: ', (x_min + x_max) / 2, 'y: ', (y_min + y_max) / 2)
-        cropped_image = img[y_min:y_max, x_min:x_max]
-        cropped_image = Image.fromarray(cropped_image)
+    with open("output.tex", "a", encoding="utf-8") as f:
+        for i in range(len_indexes):
+            # если мы уже брали сегмент как подпись, то скип
+            if caption:
+                caption = False
+                continue
+            box = boxes[indexes[i]]
+            x_min, y_min, x_max, y_max = map(int, box[:4])
+            # print('x: ', (x_min + x_max) / 2, 'y: ', (y_min + y_max) / 2)
+            cropped_image = img[y_min:y_max, x_min:x_max]
+            cropped_image = Image.fromarray(cropped_image)
 
-        new_string = False
+            new_string = False
 
-        # проверка на перенос строки
-        if i != 0:
-            box_prev = boxes[indexes[i - 1]]
-            x_min_prev, y_min_prev, x_max_prev, y_max_prev = map(int, box_prev[:4])
-            #print('y_prev: ', (y_min_prev + y_max_prev) / 2)
-            if abs((y_min + y_max) / 2 - (y_min_prev + y_max_prev) / 2) >= 10:
-                new_string = True
+            # проверка на перенос строки
+            if i != 0:
+                box_prev = boxes[indexes[i - 1]]
+                x_min_prev, y_min_prev, x_max_prev, y_max_prev = map(int, box_prev[:4])
+                # print('y_prev: ', (y_min_prev + y_max_prev) / 2)
+                if abs((y_min + y_max) / 2 - (y_min_prev + y_max_prev) / 2) >= 10:
+                    new_string = True
 
-        if int(classes[indexes[i]]) == 0:
-            latex_output += '$' + model_latex(cropped_image) + '$'
-        elif int(classes[indexes[i]]) == 1:
-            text = pytesseract.image_to_string(cropped_image, config=config, lang='rus+eng')
-            # исправление странного глюка pytesseract'a. Удаление _ вначале
-            if text[0] == '_':
-                text = text[1:]
-            # пустые символы мешают понять новый абзац или нет
-            while text[0] == ' ':
-                text = text[1:]
-            # считаем, что в большинстве случаев если текст начинается с большой буквы, то это новый абзац
-            # потому что если текст идёт после формулы, он начнётся с , или .
-            if text[0].isupper() and new_string:
-                latex_output += '\n\n'
-            if new_string and (text[0].isdigit() and text[1] == ')'
-                               or text[0].isdigit() and text[1].isdigit() and text[2] == ')'
-                               or text[0].isdigit() and text[1].isdigit() and text[2].isdigit() and text[3] == ')'):
-                latex_output += '\n\n'
-            if new_string and (text[0].islower() and text[1] == ')'
-                               or text[0].islower() and text[1].islower() and text[2] == ')'
-                               or text[0].islower() and text[1].islower() and text[2].islower() and text[3] == ')'):
-                latex_output += '\n\n'
-            #latex_output += pytesseract.image_to_string(cropped_image, config=config, lang='rus+eng')
-            latex_output += text
-        else:
-            img_bytes = io.BytesIO()
-            cropped_image.save(img_bytes, format='PNG')
-            img_bytes = img_bytes.getvalue()  # байтовое представление png
-            i_safe = quote(str(i))
+            if int(classes[indexes[i]]) == 0:
+                formula = '$' + model_latex(cropped_image) + '$'
 
-            # если одиночная картинка с подписью
-            if i + 1 != len(indexes) - 1 and i + 2 != len(indexes) - 1 and int(classes[indexes[i + 1]]) == 1:
-                box_next = boxes[indexes[i + 1]]
-                x_min_next, y_min_next, x_max_next, y_max_next = map(int, box_next[:4])
-                cropped_image = img[y_min_next:y_max_next, x_min_next:x_max_next]
-                cropped_image = Image.fromarray(cropped_image)
-                latex_output += f"\n\n\\begin{{wrapfigure}}\n" \
-                                f"\\begin{{center}}\n" \
-                                f"\\includegraphics[width=0.5\\textwidth]{{{i_safe}.png}}\n" \
-                                f"\\end{{center}}\n" \
-                                f"\\begin{{center}}\n" \
-                                f"\\caption{{{pytesseract.image_to_string(cropped_image, config=config, lang='rus+eng')}}}\n" \
-                                f"\\end{{center}}\n" \
-                                f"\\end{{wrapfigure}}\n\n"
-                caption = True
+                if i != 0 and new_string is False:
+                    if prev_text[-1] != ' ':
+                        f.write(' ')
+
+                f.write(formula)
+                prev_text = formula
+            elif int(classes[indexes[i]]) == 1:
+                text = pytesseract.image_to_string(cropped_image, config=config, lang='rus+eng')
+                if text == '':
+                    continue
+                # исправление странного глюка pytesseract'a. Удаление _ вначале
+                elif text[0] == '_':
+                    text = text[1:]
+                # пустые символы мешают понять новый абзац или нет
+                while text[0] == ' ':
+                    text = text[1:]
+                # считаем, что в большинстве случаев если текст начинается с большой буквы, то это новый абзац
+                # потому что если текст идёт после формулы, он начнётся с , или .
+                if text[0].isupper() and new_string:
+                    f.write('\n\n')
+                elif new_string and (text[0].isdigit() and text[1] == ')'
+                                     or text[0].isdigit() and text[1].isdigit() and text[2] == ')'
+                                     or text[0].isdigit() and text[1].isdigit() and text[2].isdigit() and text[3] == ')'):
+                    f.write('\n\n')
+                elif new_string and (text[0].islower() and text[1] == ')'
+                                     or text[0].islower() and text[1].islower() and text[2] == ')'
+                                     or text[0].islower() and text[1].islower() and text[2].islower() and text[3] == ')'):
+                    f.write('\n\n')
+
+                ######## какая-то муть. надо переписать. неверно срабатывают условия
+                if i != 0 and new_string is False and text[0].isupper() and prev_text[-1] != ' ':
+                    f.write(' ')
+                elif i != 0 and (text[0] == ' ' or text[0] == ',' or text[0] == '.'):
+                    pass
+                elif i != 0:
+                    f.write(' ')
+                '''if i != 0 and new_string is False and (text[0] != ' ' or text[0] != ',' or text[0] != '.' or text[0].isupper()):
+                    if text[0].isupper():
+                        f.write('. ')
+                    if prev_text[-1] != ' ' and not (text[0] == ',' or text[0] == '.' or text[0] == ' '):
+                        f.write(' ')'''
+
+                # центрируем или нет
+                ######### переписать это text[-1] == '.' придумать условие для заголовка лучше
+                if i + 1 < len_indexes - 1 and (new_string or i == 0) and text[0].isupper() \
+                        and (text[-1] == '.' or text[-1] == '\n') and len(text) < 50:
+                    box_next = boxes[indexes[i + 1]]
+                    x_min_next, y_min_next, x_max_next, y_max_next = map(int, box_next[:4])
+
+                    if abs((y_min + y_max) / 2 - (y_min_next + y_max_next) / 2) >= 10:
+                        f.write('\\begin{center}\n')
+                        f.write(text)
+                        f.write('\\end{center}')
+                    else:
+                        if text[0].islower() and (i == 0 or text[-2] == '\\' and text[-1] == 'n'):
+                            f.write('\\noindent\n')
+                        f.write(text)
+                else:
+                    if text[0].islower() and (i == 0 or text[-2] == '\\' and text[-1] == 'n'):
+                        f.write('\\noindent\n')
+                    f.write(text)
+                prev_text = text
             else:
-                latex_output += f"\n\n\\begin{{wrapfigure}}\n" \
-                                f"\\includegraphics[width=0.5\\textwidth]{{{i_safe}.png}}\n" \
-                                f"\\end{{wrapfigure}}\n\n"
+                img_bytes = io.BytesIO()
+                cropped_image.save(img_bytes, format='PNG')
+                img_bytes = img_bytes.getvalue()  # байтовое представление png
+                i_safe = quote(str(i))
 
-            with open(f"{i_safe}.png", "wb") as f:
-                f.write(img_bytes)
+                # если одиночная картинка с подписью
+                if i + 1 != len_indexes - 1 and i + 2 != len_indexes - 1 and int(classes[indexes[i + 1]]) == 1:
+                    box_next = boxes[indexes[i + 1]]
+                    x_min_next, y_min_next, x_max_next, y_max_next = map(int, box_next[:4])
+                    cropped_image = img[y_min_next:y_max_next, x_min_next:x_max_next]
+                    cropped_image = Image.fromarray(cropped_image)
 
-    latex_output += "\\end{document}"
-
-    with open("output.tex", "w", encoding="utf-8") as f:
-        f.write(latex_output)
+                    f.write(f"\n\n\\begin{{wrapfigure}}\n"
+                            f"\\begin{{center}}\n"
+                            f"\\includegraphics[width=0.5\\textwidth]{{{i_safe}.png}}\n"
+                            f"\\end{{center}}\n"
+                            f"\\begin{{center}}\n"
+                            f"\\caption{{{pytesseract.image_to_string(cropped_image, config=config, lang='rus+eng')}}}\n"
+                            f"\\end{{center}}\n"
+                            f"\\end{{wrapfigure}}\n\n")
+                    caption = True
+                else:
+                    f.write(f"\n\n\\begin{{wrapfigure}}\n"
+                            f"\\includegraphics[width=0.5\\textwidth]{{{i_safe}.png}}\n"
+                            f"\\end{{wrapfigure}}\n\n")
 
 
 model_latex = LatexOCR()
@@ -187,4 +234,4 @@ best_model = YOLO('best.pt')
 # metrics = best_model.val()
 # print(metrics)
 
-create_tex('Функции и построение графиков. — 1968_★_Библиотека_SovieTime.ru-036.png')
+start('png2pdf.pdf')
