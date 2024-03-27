@@ -90,7 +90,7 @@ def create_tex(img_path, numper_of_page):
 
     # получение классов и имен классов
     classes = results[0].boxes.cls.cpu().numpy()
-    class_names = results[0].names
+    # class_names = results[0].names
 
     # получение координат ограничивающих рамок объектов
     boxes = results[0].boxes.xyxy.cpu().numpy()
@@ -202,13 +202,16 @@ def create_tex(img_path, numper_of_page):
                 prev_text = text
                 y_min_prev = y_min
             else:
-                img_bytes = io.BytesIO()
-                cropped_image.save(img_bytes, format='PNG')
-                img_bytes = img_bytes.getvalue()  # байтовое представление png
-                i_safe = quote(str(i))
+                i_safe = str(i)
+                str_number_of_page = str(numper_of_page)
+                cropped_image.save('page' + str_number_of_page + '_' + i_safe + '.png', format='PNG')
 
+                if i == len_indexes - 1:
+                    f.write(f"\n\n\\begin{{wrapfigure}}\n"
+                            f"\\includegraphics[width=0.5\\textwidth]{{page{str_number_of_page}_{i_safe}.png}}\n"
+                            f"\\end{{wrapfigure}}\n\n")
                 # если одиночная картинка с подписью
-                if i + 1 != len_indexes - 1 and i + 2 != len_indexes - 1 and int(classes[indexes[i + 1]]) == 1:
+                elif i + 1 != len_indexes - 1 and i + 2 != len_indexes - 1 and int(classes[indexes[i + 1]]) == 1:
                     box_next = boxes[indexes[i + 1]]
                     x_min_next, y_min_next, x_max_next, y_max_next = map(int, box_next[:4])
                     cropped_image = img[y_min_next:y_max_next, x_min_next:x_max_next]
@@ -216,7 +219,7 @@ def create_tex(img_path, numper_of_page):
 
                     f.write(f"\n\n\\begin{{wrapfigure}}\n"
                             f"\\begin{{center}}\n"
-                            f"\\includegraphics[width=0.5\\textwidth]{{{i_safe}.png}}\n"
+                            f"\\includegraphics[width=0.5\\textwidth]{{page{str_number_of_page}_{i_safe}.png}}\n"
                             f"\\end{{center}}\n"
                             f"\\begin{{center}}\n"
                             f"\\caption{{{pytesseract.image_to_string(cropped_image, config=config, lang='rus+eng')}}}\n"
@@ -225,7 +228,7 @@ def create_tex(img_path, numper_of_page):
                     caption = True
                 else:
                     f.write(f"\n\n\\begin{{wrapfigure}}\n"
-                            f"\\includegraphics[width=0.5\\textwidth]{{{i_safe}.png}}\n"
+                            f"\\includegraphics[width=0.5\\textwidth]{{page{str_number_of_page}_{i_safe}.png}}\n"
                             f"\\end{{wrapfigure}}\n\n")
 
 
@@ -235,5 +238,6 @@ best_model = YOLO('best.pt')
 # metrics = best_model.val()
 # print(metrics)
 
-start('png2pdf.pdf')
+# test_visualization('photo_2024-03-27_16-33-01.jpg')
+start('photo_2024-03-27_16-33-01.jpg')
 # test_visualization('page_2.png')
