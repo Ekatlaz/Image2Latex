@@ -1,0 +1,7 @@
+names:
+  0: formula
+  1: text
+  2: picture
+nc: 3
+train: images/train
+val: images/validation
