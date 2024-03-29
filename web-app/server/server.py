@@ -12,7 +12,8 @@ import numpy as np
 import os
 import pdf2image
 import shutil
-# from ocr import *
+from app.server.main import *
+TIME_TO_DEL = 60 * 15
 
 app = FastAPI()
 
@@ -29,6 +30,7 @@ class Item(BaseModel):
 class texText(BaseModel):
 	tex: str
 
+users_ids: [str, type(time.time())] = {}
 
 @app.get("/", response_class=HTMLResponse)
 async def get_site():
@@ -39,7 +41,9 @@ async def get_site():
 
 @app.post("/uploadFile")
 async def uploadPhoto(file: UploadFile):
+	print("recieve request")
 	user_id = str(uuid4())
+	users_ids[user_id] = time.time()
 	foldername = "savedfiles_" + user_id;
 	os.system("mkdir " + foldername)
 	if file and "png" in file.content_type:
@@ -57,52 +61,58 @@ async def uploadPhoto(file: UploadFile):
 		cv.imwrite(foldername + "/saved.png", img)
 
 	elif file and ("pdf" in file.content_type):
-		print("file uploaded pdf to png")
-		content = await file.read()
-		img = pdf2image.pdf2image.convert_from_bytes(content)
-		for i, pdf in enumerate(img):
-			pdf.save(foldername + "/saved_" + str(i) + ".png", 'PNG')
+		print("file uploaded pdf")
+		with open(foldername + "/saved.pdf", "wb") as f:
+			f.write(file.file.read())
 
 	else:
 		raise HTTPException(status_code=400, detail="Incorrect file")
-
-		print(file)
 	
 	get_LaTex_from_image(foldername)
-	zipfiles(foldername)
-	response = FileResponse(path="zip_" + foldername + ".zip", filename="files.zip")
+	
 	
 	return user_id
 
 @app.get("/tex/{user_id}/")
 async def get_tex(user_id: str):
-	print("asdfasdf")
 	response = "";
-	with open("savedfiles_" + user_id + "/result.tex") as file:
+	if (time.time() - users_ids[user_id] > TIME_TO_DEL):
+		raise HTTPException(status_code=400, detail="Incorrect file")
+	users_ids[user_id] = time.time()
+	with open("savedfiles_" + user_id + "/output.tex") as file:
 		response = file.read();
 	return response
 
 @app.get("/pdf/{user_id}/")
 async def get_pdf(user_id: str):
-	response = FileResponse(path="savedfiles_" + user_id + "/result.pdf", filename="result.pdf")
+	if (user_id in list(users_ids.keys()) and time.time() - users_ids[user_id] > TIME_TO_DEL) or time.time() - os.path.getmtime("savedfiles_" + user_id + "/output.pdf") > TIME_TO_DEL:
+		raise HTTPException(status_code=400, detail="Incorrect file")
+	users_ids[user_id] = time.time()
+	response = FileResponse(path="savedfiles_" + user_id + "/output.pdf", filename="output.pdf")
 	return response
 
 @app.get("/zip/{user_id}")
 async def get_zip(user_id: str):
+	if (time.time() - users_ids[user_id] > TIME_TO_DEL):
+		raise HTTPException(status_code=400, detail="Incorrect file")
+	users_ids[user_id] = time.time()
+	zipfiles("savedfiles_" + user_id)
 	response = FileResponse(path="zip_savedfiles_" + user_id + ".zip", filename="files.zip")
 	return response
 
 @app.post("/renderTex/{user_id}")
 async def get_renderTex(user_id: str, texText: texText):
-	print(texText.tex)
-	with open("savedfiles_" + user_id + "/result.tex", "w") as file:
+	if (user_id in list(users_ids.keys()) and time.time() - users_ids[user_id] > TIME_TO_DEL) or time.time() - os.path.getmtime("savedfiles_" + user_id + "/output.pdf") > TIME_TO_DEL:
+		raise HTTPException(status_code=400, detail="Incorrect file")
+	users_ids[user_id] = time.time()
+	with open("savedfiles_" + user_id + "/output.tex", "w") as file:
 		file.write(texText.tex)
-	os.system("rm -rf " + "savedfiles_" + user_id + "/result.pdf ")
-	os.system("pdflatex -output-directory=savedfiles_" + user_id + " " + "savedfiles_" + user_id + "/result.tex")
+	os.system("rm -rf " + "savedfiles_" + user_id + "/output.pdf " + " zip_savedfiles_" + user_id + ".zip")
+	os.system("pdflatex -interaction=nonstopmode -output-directory=savedfiles_" + user_id + " " + "savedfiles_" + user_id + "/output.tex")
 
-	if os.path.exists("savedfiles_" + user_id + "/result.pdf"):
-		response = FileResponse(path="savedfiles_" + user_id + "/result.pdf", filename="result.pdf")
-		os.system("rm -rf " + "savedfiles_" + user_id + "/result.log " + " savedfiles_" + user_id  + "/result.aux")
+	if os.path.exists("savedfiles_" + user_id + "/output.pdf"):
+		response = FileResponse(path="savedfiles_" + user_id + "/output.pdf", filename="output.pdf")
+		os.system("rm -rf " + "savedfiles_" + user_id + "/output.log " + " savedfiles_" + user_id  + "/output.aux")
 		return response
 	else:
 		raise HTTPException(status_code=400, detail="Incorrect file")
@@ -114,42 +124,25 @@ def zipfiles(foldername):
 
 def get_LaTex_from_image(foldername: str):
 	for filename in os.scandir(foldername):
-		if filename.is_file():
+		if filename.is_file() and ".png" in filename.path or ".pdf" in filename.path:
 			print(filename)
 			print(filename.path)
+			start(filename.path, foldername)
 			print("-------")
-	os.system("touch " + foldername + "/result.tex")
-	latex = """\\documentclass{article}
-\\usepackage{graphicx} % Required for inserting images
-
-\\title{example}
-\\author{Nick Seleznev}
-\\date{March 2024}
-
-\\begin{document}
-
-\\maketitle
-
-\\section{Introduction}
-\\begin{figure}
-    \\centering
-    \\includegraphics[width=0.5\\linewidth]{saved_0.png}
-    \\caption{Enter Caption}
-    \\label{fig:enter-label}
-\\end{figure}
-
-\\end{document}
-"""
-	with open(foldername + "/result.tex", "w") as tex:
-		tex.write(latex)
-	os.system("pdflatex -output-directory=" + foldername + " " + foldername + "/result.tex")
-	os.system("rm -rf " + foldername + "/result.log " + foldername + "/result.aux")
+	os.system("pdflatex -interaction=nonstopmode -output-directory=" + foldername + " " + foldername + "/output.tex")
+	os.system("rm -rf " + foldername + "/output.log " + foldername + "/output.aux")
 
 def check_for_unused_files():
 	for filename in os.scandir("/"):
 		if filename.is_file() and ".zip" in filename.path or not filename.is_file() and "savedfiles_" in filename.path:
-			os.system("echo \"file =" + filename.path + "\"")
-			os.system("rm -rf " + filename.path)
+			name = filename.path
+			name = name.replace("zip_savedfiles_", "")
+			name = name.replace(".zip", "")
+			name = name.replace("savedfiles_", "")
+			name = name.replace("/", "")
+			if (name in list(users_ids.keys()) and time.time() - users_ids[name] > TIME_TO_DEL) or time.time() - os.path.getmtime(filename.path) > TIME_TO_DEL:
+				os.system("echo \"file =" + filename.path + "\"")
+				os.system("rm -rf " + filename.path)
 
 
 class RepeatedTimer(object):
@@ -181,6 +174,5 @@ class RepeatedTimer(object):
 		self._timer.cancel()
 		self.is_running = False
 
-
-timer = RepeatedTimer(30 * 15, check_for_unused_files)
+timer = RepeatedTimer(TIME_TO_DEL, check_for_unused_files)
 timer.start()
