@@ -27,4 +27,10 @@ https://drive.google.com/drive/folders/1bm-AOOOSzFWYWTpVWIN3h1yOpKRD1ELT?usp=sha
                   text        101       3028      0.837      0.801      0.837      0.562
                picture        101         96      0.813      0.863      0.847       0.65
 
-## Модель от ... (в процессе)
+## Модель от 15.04.2024
+
+                 Class     Images  Instances      Box(P          R      mAP50  mAP50-95): 100%|██████████| 13/13 [04:32<00:00, 20.97s/it]
+                   all        197      10050      0.799       0.83      0.829       0.56
+               formula        197       3869      0.841      0.836      0.865      0.554
+                  text        197       5996      0.852      0.865      0.889      0.593
+               picture        197        185      0.705      0.789      0.733      0.534
