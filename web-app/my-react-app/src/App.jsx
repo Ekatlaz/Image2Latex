@@ -68,7 +68,7 @@ function App() {
         tex: text
       }),
     };
-    fetch(`http://localhost:8000/renderTex/${user}`, KeyOptions)
+    fetch(`http://188.44.41.132:8000/renderTex/${user}`, KeyOptions)
     .then(response => {
       if (response.ok) {
         const error = document.getElementById('statusError');
@@ -90,7 +90,7 @@ function App() {
     const options = {
       method: 'GET',
     };
-    fetch(`http://localhost:8000/zip/${user}/`, options)
+    fetch(`http://188.44.41.132:8000/zip/${user}/`, options)
     .then(response => response.blob())
     .then(data => {
       const download = document.createElement('a')
@@ -116,7 +116,7 @@ function App() {
     
     console.log("fetching")
     setUploadHidden(false)
-    fetch('http://localhost:8000/uploadFile', KeyOptions)
+    fetch('http://188.44.41.132:8000/uploadFile', KeyOptions)
     .then(responce => responce.text())
     .then(data => {
       const options = {
@@ -127,7 +127,7 @@ function App() {
     data = data.substring(1,data.length-1)
     setUser(data)
     console.log(user);
-      fetch(`http://localhost:8000/tex/${data}/`, options)
+      fetch(`http://188.44.41.132:8000/tex/${data}/`, options)
       .then(response => {
         if (response.ok)
           return response.text()
@@ -155,7 +155,7 @@ function App() {
       })
 
 
-      fetch(`http://localhost:8000/pdf/${data}/`, options)
+      fetch(`http://188.44.41.132:8000/pdf/${data}/`, options)
       .then(response => {
         if (response.ok)
           return response.blob()
