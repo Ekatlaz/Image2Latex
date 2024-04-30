@@ -13,6 +13,12 @@ function App() {
   const [sourcePDF, setSourcePDF] = useState(dataPdf)
   const [user, setUser] = useState("");
 
+  
+  const [uploadHidden, setUploadHidden] = useState(true)
+  const [downloadHidden, setDownloadHidden] = useState(true)
+  const [isPreview, setPreview] = useState(true)
+  const [showOrigin, setShowOrigin] = useState(false)
+  const [selectedImage, setSelectedImage] = useState(null)
   const [idDisabled, setIsDisabled] = useState(true)
   const [totalPages, setTotalPages] = useState(1);
   const [pageNumber, setPageNumber] = useState(1);
@@ -24,6 +30,7 @@ function App() {
  
   const onDocumentLoadSuccess = ({ numPages }) => {
     setTotalPages(numPages);
+    setPageNumber(1)
   }
  
   const previousPage = () => {
@@ -32,6 +39,19 @@ function App() {
  
   const nextPage = () => {
     setPageNumber(prevPageNumber => prevPageNumber + 1);
+  }
+
+  function onClickPreview() {
+    console.log("preview")
+    const button = document.getElementById("showOrigin")
+    if (showOrigin) {
+      button.textContent = "show origin"
+    }else {
+      button.textContent = "show LaTex"
+      const img = document.getElementById("imgOrigin")
+      img.setAttribute("src", URL.createObjectURL(selectedImage))
+    }
+    setShowOrigin(!showOrigin)
   }
 
   function onClickRender() {
@@ -62,14 +82,32 @@ function App() {
       setSourcePDF(data)
     }).catch(err => {
       const error = document.getElementById('statusError');
-      error.textContent = "Cannot render this tex file"
+      error.textContent = "Cannot render this tex file or files has been deleted (files stores only for 30 minutes)"
+    })
+  }
+
+  function onDownloadBtn() {
+    const options = {
+      method: 'GET',
+    };
+    fetch(`http://localhost:8000/zip/${user}/`, options)
+    .then(response => response.blob())
+    .then(data => {
+      const download = document.createElement('a')
+      download.href = URL.createObjectURL(data)
+      download.download = "files.zip"
+      download.click()
     })
   }
 
   function onUploadBtnClicked() {
+    setPreview(false);
+    const error = document.getElementById('statusError');
+    error.textContent = ""
     console.log("something")
     const fileInput = document.querySelector('input[type="file"]') ;
     const formData = new FormData();
+    setSelectedImage(fileInput.files[0])
     formData.append('file', fileInput.files[0]);
     const KeyOptions = {
       method: 'POST',
@@ -77,6 +115,7 @@ function App() {
     };
     
     console.log("fetching")
+    setUploadHidden(false)
     fetch('http://localhost:8000/uploadFile', KeyOptions)
     .then(responce => responce.text())
     .then(data => {
@@ -89,34 +128,49 @@ function App() {
     setUser(data)
     console.log(user);
       fetch(`http://localhost:8000/tex/${data}/`, options)
-      .then(responce => responce.text())
+      .then(response => {
+        if (response.ok)
+          return response.text()
+        else
+          throw new Error('');
+      })
       .then(data => {
         data = data.substring(1, data.length - 1);
         let str = data;
+        
+        console.log(str);
         str = str.split("\\n").join("\r\n")
         str = str.split("\\\\").join("\\");
+        str = str.split("\noindent").join("\\noindent")
         console.log(str);
 
         const TexPage = document.getElementById("TexFrame");
         TexPage.value = str;
-        setEdit(true)
+        setUploadHidden(true)
+        setIsDisabled(true)
+      }).catch(err => {
+        setUploadHidden(true)
+        const error = document.getElementById('statusError');
+        error.textContent = "Try to upload file again (all files stores only 30 minutes)"
       })
 
 
       fetch(`http://localhost:8000/pdf/${data}/`, options)
-      .then(response => response.blob())
+      .then(response => {
+        if (response.ok)
+          return response.blob()
+        else
+          throw new Error('');
+      })
       .then(data=> {
         dataPdf = data;
         setSourcePDF(dataPdf)
         console.log(dataPdf)
-      })
-
-      fetch(`http://localhost:8000/zip/${data}/`, options)
-      .then(response => response.blob())
-      .then(data => {
-        const download = document.getElementById('download')
-        download.href = URL.createObjectURL(data)
-        download.download = "files.zip"
+        setUploadHidden(true)
+      }).catch(err => {
+        setUploadHidden(true)
+        const error = document.getElementById('statusError');
+        error.textContent = "Try to upload file again (all files stores only 30 minutes)"
       })
     })
   }
@@ -126,13 +180,31 @@ function App() {
       <div className="App">
       <div className="App-header">
         <div className="MainAppBlock">
+
+          <div className="SpecialButtons">
+            <div>
+              <button id="showOrigin" type="button" disabled={isPreview} onClick={onClickPreview}>show origin</button>
+            </div>
+            <div>
+              <button hidden={true}></button>
+            </div>
+          </div>
+
           <div className="TextBlock" id="texBlock">
-            <div className="FilesPreview">
+
+            <div className="FilesPreview" hidden={!showOrigin}>
+              <div className="documentView">
+                <img id="imgOrigin" src="" alt="not found" />
+              </div>
+            </div>
+
+            <div className="FilesPreview" hidden={showOrigin}>
               <div className='texView'>
                 <textarea id="TexFrame" onChange={onChangeTex}>
                 </textarea >
               </div>
             </div>
+
             <div className="FilesPreview" id="texVis">
               <div className='documentView'>
                 <Document file={sourcePDF} onLoadSuccess={onDocumentLoadSuccess}>
@@ -142,7 +214,9 @@ function App() {
                 </Document>
               </div>
             </div>
+
           </div>
+
           <div className="SpecialButtons">
             <div>
               <button type="button" disabled={idDisabled} onClick={onClickRender}>render</button>
@@ -163,18 +237,32 @@ function App() {
             </button>
             </div>
           </div>
+
           <div className="BtnBlock">
             <div>
                 <input type="file" className="DownloadBtn" id="uploadFile"></input>
             </div>
-            <div>
+            <div className="SpecialButtons">
               <button className="LoadBtn" id="myButton" onClick={onUploadBtnClicked}> Upload File</button>
+              <div>
+                <div hidden={uploadHidden}>
+                  <span className="loader"></span>
+                </div>
+              </div>
             </div>
+            <div className="SpecialButtons">
               <a id="download">
-                <button className="LoadBtn" > Download LaTex</button>
+                <button className="LoadBtn" onClick={onDownloadBtn}> Download LaTex</button>
               </a>
+              <div>
+                <div hidden={downloadHidden}>
+                  <span className="loader"></span>
+                </div>
+              </div>
+            </div>
               
           </div>  
+
         </div>
         
       </div>
