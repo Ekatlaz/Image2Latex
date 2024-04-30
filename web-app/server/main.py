@@ -233,4 +233,4 @@ def create_tex(img_path, numper_of_page, foldername):
                             f"\\end{{wrapfigure}}\n\n")
 
 model_latex = LatexOCR()
-best_model = YOLO('app/server/best.pt')
+best_model = YOLO('best.pt')
