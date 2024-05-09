@@ -3,9 +3,9 @@
   line-height: 1.5;
   font-weight: 400;
 
-  color-scheme: light dark;
+  color-scheme: light;
   color: rgba(255, 255, 255, 0.87);
-  background-color: #242424;
+  /* background-color: #242424; */
 
   font-synthesis: none;
   text-rendering: optimizeLegibility;
@@ -35,103 +35,7 @@
 .App-link {
   color: #61dafb;
 }
-.DownloadBtn {
 
-  height: 40px;
-  width: 450px;
-  color: white;
-  /* background-color: rgb(17, 17, 153); */
-  border: solid 1px white;
-  border-radius: 5px;
-}
-.LoadBtn {
-  height: 40px;
-  width: 150px;
-  color: white;
-  /* background-color: rgb(17, 17, 153); */
-  border: solid 1px white;
-  border-radius: 5px;
-}
-.FilesPreview {
-  float: left;
-  background-color: rgb(255, 255, 255);
-  border: solid 3px #282c34;
-  border-radius: 10px;
-  width: 50%;
-  height: 100%;
-  min-height: 500px;
-  padding: 5px;
-  color: black;
-  white-space: normal;
-}
-
-.documentView {
-  height: 100%;
-  width: 100%;
-  overflow: scroll;
-}
-
-.texView {
-  height: 100%;
-  width: 100%;
-}
-
-.ApiAnswer {
-  background-color: rgb(255, 255, 255);
-  border: solid 3px #282c34;
-  border-radius: 10px;
-  width: 100%;
-  height: 100%;
-  color: #282c34;
-  text-align: left;
-  padding: 10px;
-}
-.MainTextBlock {
-  display: flex;
-  flex-direction: row;
-  align-items: flex-start;
-
-}
-.MainAppBlock{
-  display: flex;
-  flex-direction: column;
-  width: 100%;
-  height: 1200px;
-}
-
-.TextBlock {
-  display: flex;
-  min-width: 700px;
-  max-height: 700px;
-  flex-direction: row;
-  justify-content: space-around;
-}
-
-
-.uploadClass {
-  display: flex;
-  flex-direction: row;
-  justify-content: space-around;
-}
-
-.SpecialButtons {
-  display: flex;
-  min-width: 700px;
-  flex-direction: row;
-  justify-content: space-around;
-  margin-top: 20px;
-}
-
-.loader {
-  width: 40px;
-  height: 40px;
-  border: 5px solid #FFF;
-  border-bottom-color: #FF3D00;
-  border-radius: 50%;
-  display: flex;
-  box-sizing: border-box;
-  animation: rotation 1s linear infinite;
-  }
 
   @keyframes rotation {
   0% {
@@ -143,25 +47,6 @@
   } 
 
 
-#documentViewId {
-  width: 100%;
-  height: 100%;
-}
-
-#TexFrame {
-  resize: none;
-  overflow: scroll;
-  height: 100%;
-  width: 100%;
-  padding: 1px;
-  margin: 0;
-  text-align: left;
-}
-
-#statusError {
-  color: red;
-  font-size: 12px;
-}
 
 @keyframes App-logo-spin {
   from {
@@ -171,4 +56,7 @@
     transform: rotate(360deg);
   }
 }
+
+
+
 

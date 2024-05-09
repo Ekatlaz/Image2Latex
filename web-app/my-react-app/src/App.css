@@ -1,42 +1,180 @@
-#root {
-  max-width: 90%;
+body {
+  font-family: Arial, sans-serif;
+  padding: 20px;
+  background-color: #f8f8f8;
+}
+
+.container {
+  max-width: 95%;
   margin: 0 auto;
-  padding: 0;
+  background-color: #fff;
+  padding: 20px;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+h1 {
+  text-align: center;
+  color: #333;
+}
+
+h2 {
+  color: #333;
+}
+
+#uploadForm {
+  display: block;
+  justify-content: space-around;
+  margin-bottom: 20px;
+}
+
+.msg {
+  color: black;
+}
+
+.errorMsg {
+  color: #ff3333;
+}
+
+#statusError {
+  /* color: black; */
+  margin-bottom: 15px;
   text-align: center;
 }
 
-.logo {
-  height: 6em;
-  padding: 1.5em;
-  will-change: filter;
-  transition: filter 300ms;
-}
-.logo:hover {
-  filter: drop-shadow(0 0 2em #646cffaa);
-}
-.logo.react:hover {
-  filter: drop-shadow(0 0 2em #61dafbaa);
+input[type="file"] {
+  color: #333;
+  margin-right: 10px;
 }
 
-@keyframes logo-spin {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
+textarea {
+  width: 100%;
+  resize: none;
+  min-height: 26vh;
+  overflow: hidden;
+}
+
+button {
+  margin-right: 10px;
+  padding: 10px 20px;
+  font-size: 16px;
+  background-color: #007bff;
+  color: #fff;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+#uploadedImage {
+  width: 100%;
+  height: 100vh;
+}
+
+#pdfViewer {
+  width: 100%;
+  height: 100vh;
+}
+
+button:disabled {
+  background-color: #707070;
+}
+
+button:disabled:hover {
+  background-color: #707070;
+}
+
+button:hover {
+  background-color: #0056b3;
+}
+
+.tabs {
+  margin-bottom: 20px;
+}
+
+.tabButton {
+  padding: 10px 20px;
+  font-size: 16px;
+  background-color: #707070;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  margin-right: 10px;
+}
+
+.tabButton.active {
+  background-color: #007bff;
+  color: #fff;
+}
+
+.tabContent {
+  display: none;
+}
+
+#pdfContainer {
+  margin-top: 10px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  overflow: auto;
+}
+
+#uploadBtn {
+  display: inline-block;
+  outline: none;
+  position: relative;
+}
+
+#uploadBtn.spinning {
+  background-color: #707070;
+  padding-right: 40px;
+}
+
+#uploadBtn.spinning:after {
+  content: '';
+  right: 6px;
+  top: 50%;
+  width: 0;
+  height: 0;
+  position: absolute;
+  border-radius: 50%;
+  -webkit-animation: rotate360 0.5s infinite linear, exist 0.1s forwards ease;
+          animation: rotate360 0.5s infinite linear, exist 0.1s forwards ease;
+}
+#uploadBtn.spinning:before {
+  content: "";
+  width: 0px;
+  height: 0px;
+  border-radius: 50%;
+  right: 6px;
+  top: 50%;
+  position: absolute;
+  border: 2px solid #ffffff;
+  border-right: 3px solid #0056b3;
+  -webkit-animation: rotate360 0.5s infinite linear, exist 0.1s forwards ease;
+          animation: rotate360 0.5s infinite linear, exist 0.1s forwards ease;
+}
+
+
+@-webkit-keyframes rotate360 {
+  100% {
     transform: rotate(360deg);
   }
 }
-
-@media (prefers-reduced-motion: no-preference) {
-  a:nth-of-type(2) .logo {
-    animation: logo-spin infinite 20s linear;
+@keyframes rotate360 {
+  100% {
+    transform: rotate(360deg);
   }
 }
-
-.card {
-  padding: 2em;
+@-webkit-keyframes exist {
+  100% {
+    width: 15px;
+    height: 15px;
+    margin: -8px 5px 0 0;
+  }
 }
-
-.read-the-docs {
-  color: #888;
+@keyframes exist {
+  100% {
+    width: 15px;
+    height: 15px;
+    margin: -8px 5px 0 0;
+  }
 }
