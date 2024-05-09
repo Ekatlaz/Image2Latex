@@ -12,8 +12,8 @@ import numpy as np
 import os
 import pdf2image
 import shutil
-from app.server.main import *
-TIME_TO_DEL = 60 * 15
+from main import *
+TIME_TO_DEL = 60 * 60
 
 app = FastAPI()
 
@@ -76,8 +76,8 @@ async def uploadPhoto(file: UploadFile):
 @app.get("/tex/{user_id}/")
 async def get_tex(user_id: str):
 	response = "";
-	if (time.time() - users_ids[user_id] > TIME_TO_DEL):
-		raise HTTPException(status_code=400, detail="Incorrect file")
+	# if (time.time() - users_ids[user_id] > TIME_TO_DEL):
+	# 	raise HTTPException(status_code=400, detail="Incorrect file")
 	users_ids[user_id] = time.time()
 	with open("savedfiles_" + user_id + "/output.tex") as file:
 		response = file.read();
@@ -85,7 +85,7 @@ async def get_tex(user_id: str):
 
 @app.get("/pdf/{user_id}/")
 async def get_pdf(user_id: str):
-	if (user_id in list(users_ids.keys()) and time.time() - users_ids[user_id] > TIME_TO_DEL) or time.time() - os.path.getmtime("savedfiles_" + user_id + "/output.pdf") > TIME_TO_DEL:
+	if (user_id in list(users_ids.keys()) and time.time() - users_ids[user_id] > TIME_TO_DEL) or time.time() - os.path.getmtime("/home/nikitin/server/savedfiles_" + user_id + "/output.pdf") > TIME_TO_DEL:
 		raise HTTPException(status_code=400, detail="Incorrect file")
 	users_ids[user_id] = time.time()
 	response = FileResponse(path="savedfiles_" + user_id + "/output.pdf", filename="output.pdf")
@@ -93,6 +93,7 @@ async def get_pdf(user_id: str):
 
 @app.get("/zip/{user_id}")
 async def get_zip(user_id: str):
+	print(users_ids)
 	if (time.time() - users_ids[user_id] > TIME_TO_DEL):
 		raise HTTPException(status_code=400, detail="Incorrect file")
 	users_ids[user_id] = time.time()
@@ -102,7 +103,7 @@ async def get_zip(user_id: str):
 
 @app.post("/renderTex/{user_id}")
 async def get_renderTex(user_id: str, texText: texText):
-	if (user_id in list(users_ids.keys()) and time.time() - users_ids[user_id] > TIME_TO_DEL) or time.time() - os.path.getmtime("savedfiles_" + user_id + "/output.pdf") > TIME_TO_DEL:
+	if (user_id in list(users_ids.keys()) and time.time() - users_ids[user_id] > TIME_TO_DEL) or time.time() - os.path.getmtime("home/nikitin/server/savedfiles_" + user_id + "/output.pdf") > TIME_TO_DEL:
 		raise HTTPException(status_code=400, detail="Incorrect file")
 	users_ids[user_id] = time.time()
 	with open("savedfiles_" + user_id + "/output.tex", "w") as file:
@@ -133,7 +134,8 @@ def get_LaTex_from_image(foldername: str):
 	os.system("rm -rf " + foldername + "/output.log " + foldername + "/output.aux")
 
 def check_for_unused_files():
-	for filename in os.scandir("/"):
+	print(users_ids)
+	for filename in os.scandir("/home/nikitin/server"):
 		if filename.is_file() and ".zip" in filename.path or not filename.is_file() and "savedfiles_" in filename.path:
 			name = filename.path
 			name = name.replace("zip_savedfiles_", "")
