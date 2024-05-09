@@ -42,7 +42,7 @@ def auto_rotate(image_path):
 
 def query(q):
     API_URL = "https://api-inference.huggingface.co/models/Norm/nougat-latex-base"
-    headers = {"Authorization": f"Bearer {'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'}"}
+    headers = {"Authorization": f"Bearer {'TOKEN'}"}
     response = requests.request("POST", API_URL, headers=headers, json=q)
     return response.json()
 
