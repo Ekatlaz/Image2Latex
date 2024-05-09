@@ -12,10 +12,7 @@ import fitz
 import requests
 import base64
 
-pytesseract.pytesseract.tesseract_cmd = 'C:\\Program Files\\Tesseract-OCR\\tesseract.exe'
 config = r'--oem 3 --psm 6'
-
-
 def auto_rotate(image_path):
     img = cv2.imread(image_path)
     gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
@@ -45,7 +42,7 @@ def auto_rotate(image_path):
 
 def query(q):
     API_URL = "https://api-inference.huggingface.co/models/Norm/nougat-latex-base"
-    headers = {"Authorization": f"Bearer {'ЗАГРУЗИ СВОЙ ТОКЕН'}"}
+    headers = {"Authorization": f"Bearer {'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'}"}
     response = requests.request("POST", API_URL, headers=headers, json=q)
     return response.json()
 
@@ -63,7 +60,7 @@ def create_yaml():
         yaml.dump(data_config, outfile, default_flow_style=False)
 
 
-def convert_pdf_to_png(pdf_path):
+def convert_pdf_to_png(pdf_path, foldername):
     pdf_document = fitz.open(pdf_path)
     # os.makedirs(output_folder, exist_ok=True)
     page_count = pdf_document.page_count
@@ -72,17 +69,17 @@ def convert_pdf_to_png(pdf_path):
         page = pdf_document.load_page(page_number)
         image = page.get_pixmap()
         image_path = os.path.join(f"page_{page_number + 1}.png")
-        image.save(image_path, "PNG")
+        image.save(foldername + "/" + image_path, "PNG")
     pdf_document.close()
     return page_count
 
 
-def start(file_path):
+def start(file_path, foldername):
     if file_path.lower().endswith('.pdf'):
-        page_count = convert_pdf_to_png(file_path)
+        page_count = convert_pdf_to_png(file_path, foldername)
         # print(page_count)
 
-        with open("output.tex", "w", encoding="utf-8") as f:
+        with open(foldername + "/output.tex", "w", encoding="utf-8") as f:
 
             f.write("\\documentclass[12pt]{article}\n"
                     "\\usepackage[utf8]{inputenc}\n"
@@ -95,16 +92,20 @@ def start(file_path):
 
         for i in range(page_count):
             file_page_path = f"page_{i + 1}.png"
-            rotated_image = auto_rotate(file_page_path)
-            cv2.imwrite(file_page_path, rotated_image)
-            # create_tex(f"page_{i + 1}.png", i)
-            create_tex(file_page_path, i)
 
-        with open("output.tex", "a", encoding="utf-8") as f:
+            print(f"rotate {file_page_path}")
+            rotated_image = auto_rotate(f"{foldername}/{file_page_path}")
+            cv2.imwrite(f"{file_page_path}", rotated_image)
+
+            print(f"creating from {file_page_path}")
+            create_tex(f"{foldername}/{file_page_path}", i, foldername)
+
+        with open(foldername + "/output.tex", "a", encoding="utf-8") as f:
             f.write("\\end{document}")
 
+
     elif file_path.lower().endswith('.png') or file_path.lower().endswith('.jpg') or file_path.lower().endswith('.jpeg'):
-        with open("output.tex", "w", encoding="utf-8") as f:
+        with open(foldername + "/output.tex", "w", encoding="utf-8") as f:
 
             f.write("\\documentclass[12pt]{article}\n"
                     "\\usepackage[utf8]{inputenc}\n"
@@ -114,19 +115,18 @@ def start(file_path):
                     "\\usepackage{dsfont}\n"
                     "\\usepackage{graphicx}\n\n"
                     "\\begin{document}\n")
-
-        # пытаемся перевернуть каждое изображение
-        rotated_image = auto_rotate(file_path)
-        cv2.imwrite(file_path, rotated_image)
-        create_tex(file_path, 0)
-        with open("output.tex", "a", encoding="utf-8") as f:
+        print(f"auto_rotate ({file_path})")
+        rotated_image = auto_rotate(f"{file_path}")
+        cv2.imwrite(f"{file_path}", rotated_image)
+        create_tex(file_path, 0, foldername)
+        with open(foldername + "/output.tex", "a", encoding="utf-8") as f:
             f.write("\\end{document}")
 
 
-def create_tex(img_path, number_of_page):
+def create_tex(img_path, numper_of_page, foldername):
     img1 = cv2.imread(img_path)
     height, width, _ = img1.shape
-    results = best_model(img1, imgsz=640, iou=0.8, conf=0.3, verbose=True)
+    results = best_model(img1, imgsz=640, iou=0.4, conf=0.4, verbose=True)
     img = cv2.cvtColor(img1, cv2.COLOR_RGB2BGR)
 
     # получение классов и имен классов
@@ -147,15 +147,16 @@ def create_tex(img_path, number_of_page):
     # сортировка на основе сначала среднего y, затем среднего x
     # ..// 10 - учёт погрешности, чтобы небольшая разница в y не позволяла считать блоки разными строками
     indexes.sort(key=lambda u: ((boxes[u][1] + boxes[u][3]) / 2 // diff, (boxes[u][0] + boxes[u][2]) / 2))
+    print(indexes)
 
     len_indexes = len(indexes)
 
     caption = False
     prev_text = ''  # для добавления пропащих точек и пробелов
 
-    with (open("output.tex", "a", encoding="utf-8") as f):
+    with open(foldername + "/output.tex", "a", encoding="utf-8") as f:
         # переход на новую страницу
-        if number_of_page != 0:
+        if numper_of_page != 0:
             f.write('\n\\newpage\n')
 
         hight_of_line = 1000
@@ -222,7 +223,7 @@ def create_tex(img_path, number_of_page):
                 box_prev = boxes[indexes[i - 1]]
                 x_min_prev, y_min_prev, x_max_prev, y_max_prev = map(int, box_prev)
                 # print('y_prev: ', (y_min_prev + y_max_prev) / 2)
-                # if abs((y_min + y_max) / 2 - (y_min_prev + y_max_prev) / 2) >= 10:
+                #if abs((y_min + y_max) / 2 - (y_min_prev + y_max_prev) / 2) >= 10:
                 if abs((y_min + y_max) / 2 - (y_min_prev + y_max_prev) / 2) >= hight_of_line:
                     new_string = True
 
@@ -282,24 +283,24 @@ def create_tex(img_path, number_of_page):
                 # пустые символы мешают понять новый абзац или нет
                 while text[0] == ' ' or text[0] == '`' or text[0] == '\"' or text[0] == "\'" or text[0] == '‘' or text[0] == '_':
                     text = text[1:]
-                # удаление переносов
+                # удаление переносовcls
                 prev_k = 0
+
                 flag_delete_perenosy = 0
                 text1 = text
                 text = ''
                 for k in range(len(text1) - 2):
-                    if text1[k:k + 2] == '-\n': # or text1[k:k + 1] == '\n':
-                        # f.write(text1[prev_k:k])
+                    if text1[k:k + 2] == '-\n': # or text1[k:k + 1] == '\n'
                         text += text1[prev_k:k]
                         prev_k = k + 2
                         flag_delete_perenosy = 1
-                if flag_delete_perenosy == 1:
-                    # text = text[prev_k:len(text)]
-                    text += text1[prev_k:len(text1)]
-                else:
-                    text = text1
-                if text.endswith('-\n'): # переносы в конце абзацев или коротких кусков текста
-                    text = text[:-2]
+                    if flag_delete_perenosy == 1:
+                        text += text1[prev_k:len(text1)]
+                        flag_delete_perenosy = 0
+                    else:
+                        text = text1
+                    if text.endswith('-\n'):
+                        text = text[:-2]
                 # считаем, что в большинстве случаев если текст начинается с большой буквы, то это новый абзац
                 # потому что если текст идёт после формулы, он начнётся с , или .
                 '''if text[0].isupper() and new_string:
@@ -317,12 +318,14 @@ def create_tex(img_path, number_of_page):
                                      or text[0].islower() and text[1].islower() and text[2] == ')'
                                      or text[0].islower() and text[1].islower() and text[2].islower() and text[3] == ')'):
                     f.write('\n\n')
-                elif new_string and left_x_line - 5 >= x_min >= left_x_line + 5:
+                elif new_string and left_x_line -5 >= x_min >= left_x_line + 5:
                     f.write('\n\n\\noident\n')
                 elif new_string and text[0].isupper():
                     f.write('\n\n')
                 elif new_string and text[0].islower():
                     f.write('\n\n\\noident\n')
+
+                
 
                 # центрируем или нет
                 if abs(width/2 - (y_min + y_max)/2) <= 20 and text[0].isupper() and (new_string or i == 0) and (text[-1] == '.' or text[-1] == '\n') and len(text) < 50:
@@ -337,9 +340,9 @@ def create_tex(img_path, number_of_page):
                 y_min_prev = y_min
             elif int(classes[indexes[i]] == 2):
                 i_safe = str(i)
-                str_number_of_page = str(number_of_page)
-                cropped_image.save('page' + str_number_of_page + '_' + i_safe + '.png', format='PNG')
-
+                str_number_of_page = str(numper_of_page)
+                cropped_image.save(foldername + "/" + 'page' + str_number_of_page + '_' + i_safe + '.png', format='PNG')
+                
                 if i == len_indexes - 1:
                     f.write(f"\n\n\\begin{{wrapfigure}}\n"
                             f"\\includegraphics[width=0.5\\textwidth]{{page{str_number_of_page}_{i_safe}.png}}\n"
@@ -365,13 +368,5 @@ def create_tex(img_path, number_of_page):
                             f"\\includegraphics[width=0.5\\textwidth]{{page{str_number_of_page}_{i_safe}.png}}\n"
                             f"\\end{{wrapfigure}}\n\n")
 
-
 model_latex = LatexOCR()
-best_model = YOLO('best15.04.pt')
-# это посмотреть метрики модели
-# metrics = best_model.val()
-# print(metrics)
-
-# test_visualization('Михалёв - Начала алгебры,часть 1-092.png')
-start('Михалёв - Начала алгебры,часть 1-092.png')
-# test_visualization('page_2.png')
+best_model = YOLO('best15.04t.pt')
